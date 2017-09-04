@@ -1,9 +1,30 @@
-set (OLD_CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS})
-# Don't treat warnings as errors in 3rd_party/{gmock,cucumber-cpp}
-string (REPLACE " -Werror " " " CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS})
-find_package(Gtest REQUIRED)
-include_directories(${GMOCK_INCLUDE_DIR} ${GTEST_INCLUDE_DIR})
-set (CMAKE_CXX_FLAGS ${OLD_CMAKE_CXX_FLAGS})
+include(ExternalProject)
+ExternalProject_Add(
+  googletest
+  SOURCE_DIR /usr/src/googletest
+  CMAKE_ARGS -DBUILD_GTEST=ON -DBUILD_GMOCK=ON
+  INSTALL_COMMAND ""
+)
+ExternalProject_Get_Property(
+  googletest
+  SOURCE_DIR
+)
+ExternalProject_Get_Property(
+  googletest
+  BINARY_DIR
+)
+set(
+  GTEST_BOTH_LIBRARIES
+  ${BINARY_DIR}/googlemock/libgmock_main.a
+  ${BINARY_DIR}/googlemock/libgmock.a
+  ${BINARY_DIR}/googlemock/gtest/libgtest_main.a
+  ${BINARY_DIR}/googlemock/gtest/libgtest.a
+)
+set(
+  GTEST_INCLUDE_DIRS
+  ${SOURCE_DIR}/googlemock/include
+  ${SOURCE_DIR}/googletest/include
+)
 
 include_directories(${GTEST_INCLUDE_DIRS})
 
@@ -15,6 +36,16 @@ add_executable(
 add_executable(
   signals_test
   signals_test.cpp
+)
+
+add_dependencies(
+  properties_test
+  googletest
+)
+
+add_dependencies(
+  signals_test
+  googletest
 )
 
 target_link_libraries(
