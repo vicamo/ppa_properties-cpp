@@ -1,0 +1,47 @@
+sudo: required
+services:
+- docker
+
+env:
+  global:
+  - DOCKER_EXEC="sudo docker exec --interactive --tty test_container"
+  matrix:
+  - SUITE=buster
+  - SUITE=sid
+  - SUITE=stretch
+  - SUITE=artful
+  - SUITE=trusty
+  - SUITE=xenial
+  - SUITE=zesty
+
+matrix:
+  fast_finish: true
+  allow_failures:
+  - env: SUITE=trusty
+  - env: SUITE=xenial
+
+branches:
+  only:
+  - master
+
+before_install:
+- sudo docker pull buildpack-deps:${SUITE}
+- sudo docker images
+- |
+  sudo docker run --detach --tty \
+    --name test_container \
+    --volume ${TRAVIS_BUILD_DIR%${TRAVIS_REPO_SLUG}}:${TRAVIS_BUILD_DIR%${TRAVIS_REPO_SLUG}} \
+    --workdir ${TRAVIS_BUILD_DIR} \
+    buildpack-deps:${SUITE} \
+    /bin/bash
+
+install:
+- ${DOCKER_EXEC} apt-get update --quiet --quiet
+- ${DOCKER_EXEC} apt-get install --no-install-recommends --yes
+    devscripts equivs
+- ${DOCKER_EXEC} mk-build-deps
+    --install --remove
+    --tool 'apt-get -o Debug::pkgProblemResolver=yes --no-install-recommends --yes --allow-unauthenticated'
+
+script:
+- ${DOCKER_EXEC} dpkg-buildpackage -i -us -uc -b
