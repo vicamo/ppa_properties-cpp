@@ -4,7 +4,11 @@ services:
 
 env:
   global:
-  - DOCKER_EXEC="sudo docker exec --interactive --tty test_container"
+  - BINTRAY_USER=vicamo
+  - BINTRAY_REPO=ppa
+  - BINTRAY_COMPONENT=contrib
+  - BINTRAY_DESC="Personal Package Archive for Ubuntu-only properties-cpp package"
+  - DOCKER_EXEC="sudo docker exec test_container"
   matrix:
   - SUITE=buster
   - SUITE=sid
@@ -23,6 +27,7 @@ matrix:
 branches:
   only:
   - master
+  - release
 
 before_install:
 - sudo docker pull buildpack-deps:${SUITE}
@@ -44,4 +49,34 @@ install:
     --tool 'apt-get -o Debug::pkgProblemResolver=yes --no-install-recommends --yes --allow-unauthenticated'
 
 script:
+- if [ "${TRAVIS_PULL_REQUEST}" = false -a "${TRAVIS_BRANCH}" = release ]; then
+    cat debian/changelog | awk "NR == 1 {\$2 = substr(\$2, 1, length(\$2) - 1) \"+${SUITE})\"}{print}" > debian/changelog.new;
+    mv debian/changelog.new debian/changelog;
+  fi
 - ${DOCKER_EXEC} dpkg-buildpackage -i -us -uc -b
+
+before_deploy:
+- |
+  cat .bintray.json.in | \
+    sed -e "s#@BINTRAY_PACKAGE@#$(cat debian/control | grep ^Source: | awk '{print $2}')#g" \
+        -e "s#@BINTRAY_USER@#${BINTRAY_USER}#g" \
+        -e "s#@BINTRAY_REPO@#${BINTRAY_REPO}#g" \
+        -e "s#@BINTRAY_DESC@#${BINTRAY_DESC}#g" \
+        -e "s#@GITHUB_REPO@#${TRAVIS_REPO_SLUG}#g" \
+        -e "s#@BINTRAY_VERSION@#$(cat debian/changelog | head -n 1 | sed 's,.*(\(.*\)).*,\1,')#g" \
+        -e "s#@BINTRAY_RELEASE_DATE@#$(date -Iseconds --date="$(cat debian/changelog | grep -m 1 '^ -- ' | sed 's,^.*  ,,')")#g" \
+        -e "s#@BINTRAY_OUTDIR@#$(dirname ${TRAVIS_BUILD_DIR})#g" \
+        -e "s#@BINTRAY_POOLABBR@#$(cat debian/control | grep ^Source: | awk '{print $2}' | cut -c1)#g" \
+        -e "s#@BINTRAY_SUITE@#${SUITE}#g" \
+        -e "s#@BINTRAY_COMPONENT@#${BINTRAY_COMPONENT}#g" \
+        -e "s#@BINTRAY_ARCH@#$(${DOCKER_EXEC} dpkg-architecture -qDEB_BUILD_ARCH)#g" | \
+    tee .bintray.json
+
+deploy:
+- provider: bintray
+  file: .bintray.json
+  user: vicamo
+  key:
+    secure: "xYnOX0cXjncLtF1jybGk2EVnn+d1v5ayGUtpAKqkNntxVk27qAbeNqvO7R+mOcPmmXo94DYziod6y6c9xmEM0g0Z+VQs5Se2B2iiXkx0YNej2VGbJ7Ek5PY4Fpubss+y1BM56UYVF6YqM57Vdamw9GJ/CbcgKxYDZ4r9GEFVBjs2ndOZNYd+Hvqha7PMma9rV6SCcre8eCkRliffj1iGueoIpPIyNeGjI4Sz93RJ2Rlu2A95BdCyzdlyHkZuMKzCaTPAA3mLBf48DvCWi7ZuFxk782UKxClonHKCR4eECRwV8pN9Wjfw772GdHI9GU3eoCFUbV066nRdT3W6z2b81cKKeKto1kNID/jkcA7lq0awrSXPDCRdl4ON5avJXNUxaG/rK8jYKzry6h+keRWFZLIcE5IBlWky9j6zzgVeZXWa1vTIKClU+9e6t1ML5cmPPZ88xx3IzJYHV0WggyEUPNsmgeXyGy/2baxjUQE+t8Ip7Y5AwGLNxpcg/HooA047JY8vING2itcgjTysGT9j3cWFtTakHNfAGJq3TLCO47FOCZzDzZYl/5Dz1bqG3IVEYpB+dtCh5Ujlto/Jy4La5TDG1xBUPnxLn7nEChpxQyNLD+pLjsVAd1FlnewJmYeqR+KCWHYZlcW3afAy0RpeoPX2Z4JikOVRB/e1UU2AE6Q="
+  on:
+    branch: release
