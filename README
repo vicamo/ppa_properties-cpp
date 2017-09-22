@@ -1,0 +1,7 @@
+$ mkdir bzr; cd bzr
+bzr$ bzr branch lp:properties-cpp; cd properties-cpp
+bzr/properties-cpp$ git init
+bzr/properties-cpp$ bzr fast-export --plain . | git fast-import
+bzr/properties-cpp$ git remote add vicamo git@github.com:vicamo/ppa_properties-cpp.git
+bzr/properties-cpp$ git fetch vicamo
+bzr/properties-cpp$ git rebase -i vicamo/master
