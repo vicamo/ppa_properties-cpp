@@ -6,7 +6,6 @@ Build-Depends: cmake,
                doxygen,
                google-mock,
                graphviz,
-               libgtest-dev,
 Standards-Version: 3.9.5
 Section: libs
 Homepage: https://launchpad.net/properties-cpp

@@ -1,8 +1,17 @@
+if(IS_DIRECTORY /usr/src/googletest/googlemock)
+  set(gmock_srcdir /usr/src/googletest/googlemock)
+  set(gtest_srcdir /usr/src/googletest/googletest)
+elseif(IS_DIRECTORY /usr/src/gmock)
+  set(gmock_srcdir /usr/src/gmock)
+  set(gtest_srcdir /usr/src/gmock/gtest)
+else()
+  message(FATAL_ERROR "Can't find gmock. Where is it?")
+endif()
+
 include(ExternalProject)
 ExternalProject_Add(
   googletest
-  SOURCE_DIR /usr/src/googletest
-  CMAKE_ARGS -DBUILD_GTEST=ON -DBUILD_GMOCK=ON
+  SOURCE_DIR ${gmock_srcdir}
   INSTALL_COMMAND ""
 )
 ExternalProject_Get_Property(
@@ -15,15 +24,18 @@ ExternalProject_Get_Property(
 )
 set(
   GTEST_BOTH_LIBRARIES
-  ${BINARY_DIR}/googlemock/libgmock_main.a
-  ${BINARY_DIR}/googlemock/libgmock.a
-  ${BINARY_DIR}/googlemock/gtest/libgtest_main.a
-  ${BINARY_DIR}/googlemock/gtest/libgtest.a
+  ${BINARY_DIR}/libgmock_main.a
+  ${BINARY_DIR}/libgmock.a
+  ${BINARY_DIR}/gtest/libgtest_main.a
+  ${BINARY_DIR}/gtest/libgtest.a
 )
+# Ubuntu Xenial/Trusty have different source folder layout with
+# others. They store google-test source to /usr/src/gtest instead of
+# /usr/src/googletest/googletest as others do.
 set(
   GTEST_INCLUDE_DIRS
-  ${SOURCE_DIR}/googlemock/include
-  ${SOURCE_DIR}/googletest/include
+  ${SOURCE_DIR}/include
+  ${gtest_srcdir}/include
 )
 
 include_directories(${GTEST_INCLUDE_DIRS})
