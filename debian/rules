@@ -5,3 +5,9 @@ export DPKG_GENSYMBOLS_CHECK_LEVEL=4
 
 %:
 	dh $@ --fail-missing
+
+ifneq ($(WORKAROUND_BINTRAY_DEB_SUPPORT),)
+override_dh_builddeb:
+	dh_builddeb -- -Zgzip
+
+endif
