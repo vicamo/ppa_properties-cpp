@@ -14,6 +14,7 @@ env:
   - SUITE=sid
   - SUITE=stretch
   - SUITE=artful
+  - SUITE=bionic
   - SUITE=trusty
   - SUITE=xenial
   - SUITE=zesty
